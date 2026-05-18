@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sales & Revenue Analysis Dashboard</title>
+  <meta name="description" content="Interactive Sales & Revenue Analysis Dashboard — visualize KPIs, revenue trends, and top-performing products with CSV/Excel import and dynamic filters." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <!-- SheetJS (Excel + CSV support) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Flatpickr date picker -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        </div>
+        <span class="logo-text">RevIQ</span>
+      </div>
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-section="overview" id="nav-overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        <span>Overview</span>
+      </a>
+      <a href="#" class="nav-item" data-section="products" id="nav-products">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+          <line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+        </svg>
+        <span>Products</span>
+      </a>
+      <a href="#" class="nav-item" data-section="regions" id="nav-regions">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+        <span>Regions</span>
+      </a>
+      <a href="#" class="nav-item" data-section="data" id="nav-data">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
+          <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        <span>Data Table</span>
+      </a>
+    </nav>
+
+    <!-- ===== FILTERS PANEL ===== -->
+    <div class="filters-panel">
+      <h3 class="filters-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+        </svg>
+        Filters & Slicers
+      </h3>
+
+      <!-- Date Range -->
+      <div class="filter-group">
+        <label class="filter-label">Date Range</label>
+        <input type="text" id="dateRangePicker" class="filter-input" placeholder="Select date range" readonly />
+        <button class="filter-clear-btn" id="clearDateBtn">Clear</button>
+      </div>
+
+      <!-- Region -->
+      <div class="filter-group">
+        <label class="filter-label">Region</label>
+        <div class="checkbox-group" id="regionCheckboxes">
+          <!-- populated by JS -->
+        </div>
+      </div>
+
+      <!-- Product Search -->
+      <div class="filter-group">
+        <label class="filter-label">Product</label>
+        <input type="text" id="productSearch" class="filter-input" placeholder="Search product..." />
+      </div>
+
+      <!-- Top-N -->
+      <div class="filter-group">
+        <label class="filter-label">Top Products</label>
+        <div class="btn-group" id="topNBtns">
+          <button class="topn-btn active" data-n="5" id="topn-5">Top 5</button>
+          <button class="topn-btn" data-n="10" id="topn-10">Top 10</button>
+          <button class="topn-btn" data-n="20" id="topn-20">Top 20</button>
+        </div>
+      </div>
+
+      <button class="reset-btn" id="resetFilters">↺ Reset All Filters</button>
+    </div>
+
+    <!-- Import -->
+    <div class="import-section">
+      <h3 class="filters-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Import Data
+      </h3>
+      <div class="drop-zone" id="dropZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/>
+        </svg>
+        <p>Drop CSV / Excel here</p>
+        <span>or click to browse</span>
+        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none" />
+      </div>
+      <button class="load-sample-btn" id="loadSampleBtn">Load Sample Data</button>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="main-content" id="mainContent">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div>
+          <h1 class="page-title" id="pageTitle">Sales Overview</h1>
+          <p class="page-subtitle" id="pageSubtitle">Real-time insights from your sales data</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="data-badge" id="dataBadge">
+          <span class="badge-dot"></span>
+          <span id="rowCountLabel">No data loaded</span>
+        </div>
+        <button class="export-btn" id="exportBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export CSV
+        </button>
+      </div>
+    </header>
+
+    <!-- SECTION: Overview -->
+    <section class="section" id="section-overview">
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid" id="kpiGrid">
+        <div class="kpi-card" id="kpi-revenue">
+          <div class="kpi-icon kpi-icon--blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-label">Total Revenue</span>
+            <span class="kpi-value" id="kpi-revenue-val">—</span>
+            <span class="kpi-change" id="kpi-revenue-chg"></span>
+          </div>
+        </div>
+        <div class="kpi-card" id="kpi-sales">
+          <div class="kpi-icon kpi-icon--purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-label">Total Transactions</span>
+            <span class="kpi-value" id="kpi-sales-val">—</span>
+            <span class="kpi-change" id="kpi-sales-chg"></span>
+          </div>
+        </div>
+        <div class="kpi-card" id="kpi-aov">
+          <div class="kpi-icon kpi-icon--emerald">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-label">Avg Order Value</span>
+            <span class="kpi-value" id="kpi-aov-val">—</span>
+            <span class="kpi-change" id="kpi-aov-chg"></span>
+          </div>
+        </div>
+        <div class="kpi-card" id="kpi-units">
+          <div class="kpi-icon kpi-icon--amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-label">Units Sold</span>
+            <span class="kpi-value" id="kpi-units-val">—</span>
+            <span class="kpi-change" id="kpi-units-chg"></span>
+          </div>
+        </div>
+        <div class="kpi-card" id="kpi-growth">
+          <div class="kpi-icon kpi-icon--pink">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+              <polyline points="17 6 23 6 23 12"/>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-label">Revenue Growth</span>
+            <span class="kpi-value" id="kpi-growth-val">—</span>
+            <span class="kpi-change" id="kpi-growth-chg"></span>
+          </div>
+        </div>
+        <div class="kpi-card" id="kpi-topprod">
+          <div class="kpi-icon kpi-icon--orange">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-label">Top Product</span>
+            <span class="kpi-value kpi-value--sm" id="kpi-topprod-val">—</span>
+            <span class="kpi-change" id="kpi-topprod-chg"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row 1 -->
+      <div class="charts-grid charts-grid--wide">
+        <div class="chart-card chart-card--full">
+          <div class="chart-header">
+            <div>
+              <h2 class="chart-title">Revenue Trend</h2>
+              <p class="chart-subtitle">Monthly revenue over time</p>
+            </div>
+            <div class="chart-actions">
+              <button class="chart-btn active" data-metric="revenue" id="trend-revenue-btn">Revenue</button>
+              <button class="chart-btn" data-metric="units" id="trend-units-btn">Units</button>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="revenueTrendChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row 2 -->
+      <div class="charts-grid charts-grid--half">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h2 class="chart-title">Monthly Sales Volume</h2>
+              <p class="chart-subtitle">Units sold per month</p>
+            </div>
+          </div>
+          <div class="chart-wrap chart-wrap--md">
+            <canvas id="monthlySalesChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h2 class="chart-title">Revenue vs Transactions</h2>
+              <p class="chart-subtitle">Correlation scatter analysis</p>
+            </div>
+          </div>
+          <div class="chart-wrap chart-wrap--md">
+            <canvas id="scatterChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: Products -->
+    <section class="section hidden" id="section-products">
+      <div class="charts-grid charts-grid--wide">
+        <div class="chart-card chart-card--full">
+          <div class="chart-header">
+            <div>
+              <h2 class="chart-title">Top Products by Revenue</h2>
+              <p class="chart-subtitle" id="topProductSubtitle">Showing top 5 products</p>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="productBarChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="charts-grid charts-grid--half">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h2 class="chart-title">Product Revenue Share</h2>
+              <p class="chart-subtitle">Proportion of total revenue</p>
+            </div>
+          </div>
+          <div class="chart-wrap chart-wrap--md">
+            <canvas id="productDoughnutChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h2 class="chart-title">Product Performance</h2>
+              <p class="chart-subtitle">Revenue vs Units comparison</p>
+            </div>
+          </div>
+          <div class="chart-wrap chart-wrap--md">
+            <canvas id="productBubbleChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: Regions -->
+    <section class="section hidden" id="section-regions">
+      <div class="charts-grid charts-grid--half">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h2 class="chart-title">Regional Revenue Breakdown</h2>
+              <p class="chart-subtitle">Revenue share by region</p>
+            </div>
+          </div>
+          <div class="chart-wrap chart-wrap--md">
+            <canvas id="regionDoughnutChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h2 class="chart-title">Regional Sales Comparison</h2>
+              <p class="chart-subtitle">Monthly revenue by region</p>
+            </div>
+          </div>
+          <div class="chart-wrap chart-wrap--md">
+            <canvas id="regionBarChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="charts-grid charts-grid--wide">
+        <div class="chart-card chart-card--full">
+          <div class="chart-header">
+            <div>
+              <h2 class="chart-title">Regional Revenue Over Time</h2>
+              <p class="chart-subtitle">Multi-line trend per region</p>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="regionLineChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: Data Table -->
+    <section class="section hidden" id="section-data">
+      <div class="table-card">
+        <div class="table-header">
+          <h2 class="chart-title">Raw Data Explorer</h2>
+          <div class="table-controls">
+            <input type="text" id="tableSearch" class="filter-input" placeholder="Search rows..." style="width:200px" />
+            <button class="export-btn" id="exportBtnTable">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Export
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="dataTable">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+          <div class="empty-state" id="tableEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <p>No data loaded yet. Import a file or load sample data.</p>
+          </div>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Loading overlay -->
+  <div class="loading-overlay hidden" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <p>Processing data…</p>
+  </div>
+
+  <!-- Toast notifications -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="js/dataLoader.js"></script>
+  <script src="js/kpis.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/filters.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
