@@ -101,8 +101,16 @@ const dataLoader = {
     const keys = Object.keys(jsonArray[0]);
     const mapping = this.detectColumns(keys);
 
-    const processed = jsonArray.map(row => {
+    const processed = jsonArray.map((row, index) => {
       const parsedDate = new Date(row[mapping.Date]);
+      
+      const customerId = mapping.CustomerID 
+        ? String(row[mapping.CustomerID] || '').trim() 
+        : `CUST-${String((index % 80) + 1).padStart(4, '0')}`;
+        
+      const customerName = mapping.CustomerName 
+        ? String(row[mapping.CustomerName] || '').trim() 
+        : (mapping.CustomerID ? `Client ${row[mapping.CustomerID]}` : `Customer ${String((index % 80) + 1).padStart(4, '0')}`);
       
       return {
         Date: isNaN(parsedDate) ? new Date() : parsedDate,
@@ -111,6 +119,8 @@ const dataLoader = {
         Sales: parseInt(row[mapping.Sales]) || 1, // Number of transactions (fallback to 1)
         Revenue: parseFloat(row[mapping.Revenue]) || 0,
         Units: parseInt(row[mapping.Units]) || 0,
+        CustomerID: customerId,
+        CustomerName: customerName,
         // Keep original data just in case
         _raw: row
       };
@@ -154,6 +164,14 @@ const dataLoader = {
     idx = lowerHeaders.findIndex(h => h === 'sales' || h.includes('transaction') || h.includes('order'));
     map.Sales = idx >= 0 ? headers[idx] : null; // If not found, defaults to 1 per row in processData
     
+    // Customer ID
+    idx = lowerHeaders.findIndex(h => h.includes('customerid') || h.includes('custid') || h === 'customer' || h.includes('clientid') || h.includes('accountid'));
+    map.CustomerID = idx >= 0 ? headers[idx] : null;
+
+    // Customer Name
+    idx = lowerHeaders.findIndex(h => h.includes('customername') || h.includes('custname') || h.includes('clientname') || h.includes('buyer') || h === 'customer_name' || h === 'client');
+    map.CustomerName = idx >= 0 ? headers[idx] : null;
+    
     return map;
   },
 
@@ -164,16 +182,83 @@ const dataLoader = {
       const regions = ['North America', 'Europe', 'Asia Pacific', 'Latin America'];
       const products = ['Quantum Laptop', 'Nova Smartphone', 'Aura Smartwatch', 'Nebula Tablet', 'Zenith Earbuds', 'Pulse Monitor', 'Apex Keyboard'];
       
+      // Generate a pool of 150 unique customers with distinct profiles to make clustering look outstanding
+      const customersPool = [];
+      const firstNames = ['John', 'Jane', 'Robert', 'Mary', 'William', 'Patricia', 'David', 'Jennifer', 'Richard', 'Elizabeth', 'Thomas', 'Linda', 'Charles', 'Barbara', 'Christopher', 'Susan', 'Matthew', 'Karen', 'Steven', 'Lisa'];
+      const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Miller', 'Davis', 'Garcia', 'Rodriguez', 'Wilson', 'Martinez', 'Anderson', 'Taylor', 'Thomas', 'Moore', 'Martin', 'Jackson', 'Thompson', 'White', 'Harris'];
+      const companies = ['TechStart', 'CloudNet', 'GlobalLogistics', 'ApexSolutions', 'EcoPower', 'QuantumAI', 'PrimeHealth', 'AlphaCapital', 'NeoSoft', 'VertexMedia', 'InnovateInc', 'OmniGroup', 'BioSync', 'DeltaLogistics', 'NovaRetail', 'StarkCorp', 'WayneEnt', 'Cyberdyne', 'Initech', 'Hooli'];
+      
+      for (let c = 1; c <= 150; c++) {
+        let name = '';
+        let isCorporate = (c <= 35);
+        
+        if (isCorporate) {
+          name = companies[c % companies.length] + ' ' + (c % 3 === 0 ? 'Corp' : (c % 3 === 1 ? 'LLC' : 'Ltd'));
+        } else {
+          name = firstNames[c % firstNames.length] + ' ' + lastNames[(c + 7) % lastNames.length];
+        }
+        
+        // Profiles: VIP, Loyal, HighSpender, AtRisk, New, Regular
+        let profile = 'Regular';
+        if (c <= 15) profile = 'VIP';          // 10% VIPs
+        else if (c <= 40) profile = 'Loyal';   // 17% Loyal
+        else if (c <= 60) profile = 'HighSpender'; // 13% Occasional Big Spend
+        else if (c <= 90) profile = 'AtRisk';  // 20% Churning/Old (at risk)
+        else if (c <= 115) profile = 'New';     // 17% New Users
+        
+        customersPool.push({
+          id: `CUST-${String(c).padStart(4, '0')}`,
+          name: name,
+          isCorporate: isCorporate,
+          profile: profile
+        });
+      }
+
       const data = [];
       const now = new Date();
-      // Generate last 12 months of data
       
+      // Let's generate 800 transaction records
       for (let i = 0; i < 800; i++) {
-        // Random date within last year
-        const date = new Date(now.getTime() - Math.random() * 365 * 24 * 60 * 60 * 1000);
-        const region = regions[Math.floor(Math.random() * regions.length)];
-        const product = products[Math.floor(Math.random() * products.length)];
+        // Select a customer from pool based on a weighted random or uniform
+        // But distribute dates and prices based on the customer's profile!
+        const randCust = customersPool[Math.floor(Math.random() * customersPool.length)];
         
+        let date;
+        let product = products[Math.floor(Math.random() * products.length)];
+        let region = regions[Math.floor(Math.random() * regions.length)];
+        
+        const oneYearMs = 365 * 24 * 60 * 60 * 1000;
+        
+        if (randCust.profile === 'VIP') {
+          // VIP: Buys frequently, expensive items, recent dates
+          date = new Date(now.getTime() - Math.random() * 90 * 24 * 60 * 60 * 1000); // last 3 months
+          if (Math.random() < 0.7) {
+            product = Math.random() < 0.6 ? 'Quantum Laptop' : 'Nova Smartphone'; // expensive
+          }
+        } else if (randCust.profile === 'Loyal') {
+          // Loyal: Buys frequently throughout the whole year, medium/high items
+          date = new Date(now.getTime() - Math.random() * oneYearMs);
+          if (Math.random() < 0.4) {
+            product = Math.random() < 0.5 ? 'Nebula Tablet' : 'Aura Smartwatch';
+          }
+        } else if (randCust.profile === 'HighSpender') {
+          // HighSpender: Buys rarely (so we map their dates to a specific range or let them be random), but highly expensive items
+          date = new Date(now.getTime() - Math.random() * oneYearMs);
+          product = 'Quantum Laptop'; // always premium
+        } else if (randCust.profile === 'AtRisk') {
+          // AtRisk: Purchased in the first half of the year (180 to 365 days ago), but none recently
+          date = new Date(now.getTime() - (180 * 24 * 60 * 60 * 1000 + Math.random() * 185 * 24 * 60 * 60 * 1000));
+        } else if (randCust.profile === 'New') {
+          // New: Purchased only within the last 30 days
+          date = new Date(now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000);
+          if (Math.random() < 0.6) {
+            product = Math.random() < 0.5 ? 'Zenith Earbuds' : 'Pulse Monitor'; // lower end
+          }
+        } else {
+          // Regular: Average random dates/products
+          date = new Date(now.getTime() - Math.random() * oneYearMs);
+        }
+
         // Base price variations
         let basePrice = 0;
         if (product.includes('Laptop')) basePrice = 1200;
@@ -184,29 +269,36 @@ const dataLoader = {
         else basePrice = 150;
         
         // Randomize price slightly and determine units
-        const price = basePrice * (0.8 + (Math.random() * 0.4));
-        const units = Math.floor(Math.random() * 5) + 1;
+        const price = basePrice * (0.9 + (Math.random() * 0.2));
+        
+        let units = Math.floor(Math.random() * 3) + 1;
+        if (randCust.isCorporate) {
+          units = Math.floor(Math.random() * 8) + 3; // Corporate buyers buy in bulk
+        }
+        
         const revenue = price * units;
         
-        // Apply some seasonal trends (higher in Q4)
+        // Apply seasonal trend
         const month = date.getMonth();
         let multiplier = 1;
-        if (month === 10 || month === 11) multiplier = 1.5; // Nov/Dec boost
+        if (month === 10 || month === 11) multiplier = 1.4; // Q4 holiday boost
         
         data.push({
           Date: date,
           Product: product,
           Region: region,
-          Sales: 1, // 1 transaction
+          Sales: 1,
           Units: units,
-          Revenue: parseFloat((revenue * multiplier).toFixed(2))
+          Revenue: parseFloat((revenue * multiplier).toFixed(2)),
+          CustomerID: randCust.id,
+          CustomerName: randCust.name
         });
       }
       
       data.sort((a, b) => a.Date - b.Date);
       window.appData.raw = data;
       window.appData.filtered = [...data];
-      window.appData.fields = REQUIRED_FIELDS;
+      window.appData.fields = REQUIRED_FIELDS.concat(['CustomerID', 'CustomerName']);
       
       app.showToast('Sample dataset loaded successfully', 'success');
       app.onDataLoaded();

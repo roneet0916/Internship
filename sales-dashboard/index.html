@@ -72,6 +72,15 @@
         </svg>
         <span>Data Table</span>
       </a>
+      <a href="#" class="nav-item" data-section="segmentation" id="nav-segmentation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <span>Segmentation</span>
+      </a>
     </nav>
 
     <!-- ===== FILTERS PANEL ===== -->
@@ -379,6 +388,124 @@
       </div>
     </section>
 
+    <!-- SECTION: Customer Segmentation -->
+    <section class="section hidden" id="section-segmentation">
+      <!-- Segmentation controls & KPIs -->
+      <div class="segmentation-header-grid">
+        <div class="cluster-controller-card">
+          <div class="control-header">
+            <h3 class="control-title">K-Means Cluster Count</h3>
+            <span class="control-badge" id="clusterKValue">4</span>
+          </div>
+          <p class="control-subtitle">Adjust the slider to dynamically change the number of customer groups (clusters)</p>
+          <div class="slider-container">
+            <span class="slider-limit">2</span>
+            <input type="range" id="clusterKSlider" min="2" max="6" value="4" class="range-slider" />
+            <span class="slider-limit">6</span>
+          </div>
+        </div>
+
+        <div class="seg-kpis">
+          <div class="kpi-card min-kpi">
+            <div class="kpi-icon kpi-icon--emerald">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              </svg>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-label">Unique Customers</span>
+              <span class="kpi-value" id="kpi-seg-total-val">—</span>
+            </div>
+          </div>
+          <div class="kpi-card min-kpi">
+            <div class="kpi-icon kpi-icon--blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-label">Avg Customer Spend (LTV)</span>
+              <span class="kpi-value" id="kpi-seg-ltv-val">—</span>
+            </div>
+          </div>
+          <div class="kpi-card min-kpi">
+            <div class="kpi-icon kpi-icon--purple">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-label">Avg Frequency</span>
+              <span class="kpi-value" id="kpi-seg-freq-val">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cluster Charts Row -->
+      <div class="charts-grid charts-grid--half">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h2 class="chart-title">Customer Distribution (Recency vs Frequency)</h2>
+              <p class="chart-subtitle">Scatter analysis colored by cluster groups</p>
+            </div>
+          </div>
+          <div class="chart-wrap chart-wrap--md">
+            <canvas id="scatterClusterChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h2 class="chart-title">Customer Purchase Power (Frequency vs Monetary)</h2>
+              <p class="chart-subtitle">Bubble scale proportional to customer spend (LTV)</p>
+            </div>
+          </div>
+          <div class="chart-wrap chart-wrap--md">
+            <canvas id="bubbleClusterChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Segment Persona Profiles Grid -->
+      <h2 class="section-divider-title">Identified Customer Personas</h2>
+      <div class="profiles-grid" id="clusterProfilesGrid">
+        <!-- Dyn pop by JS -->
+      </div>
+
+      <!-- Customers Explorer Table -->
+      <div class="table-card">
+        <div class="table-header">
+          <div>
+            <h2 class="chart-title">Customer Segment Explorer</h2>
+            <p class="chart-subtitle">RFM metrics breakdown & target action recommendations</p>
+          </div>
+          <div class="table-controls">
+            <input type="text" id="customerSearch" class="filter-input" placeholder="Search profiles..." style="width:250px" />
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Customer ID</th>
+                <th>Name/Account</th>
+                <th>Recency (Last Order)</th>
+                <th>Frequency (Orders)</th>
+                <th>Monetary Value (Spend)</th>
+                <th>Segment Group</th>
+                <th>Target Marketing Recommendation</th>
+              </tr>
+            </thead>
+            <tbody id="customerTableBody">
+              <!-- Dyn pop by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- SECTION: Data Table -->
     <section class="section hidden" id="section-data">
       <div class="table-card">
@@ -426,6 +553,7 @@
   <script src="js/dataLoader.js"></script>
   <script src="js/kpis.js"></script>
   <script src="js/charts.js"></script>
+  <script src="js/segmentation.js"></script>
   <script src="js/filters.js"></script>
   <script src="js/app.js"></script>
 </body>

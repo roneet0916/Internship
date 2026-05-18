@@ -11,6 +11,7 @@ const app = {
     // Initialize modules
     dataLoader.init();
     filters.init();
+    segmentation.init();
     
     // UI Elements
     this.mobileMenuBtn = document.getElementById('mobileMenuBtn');
@@ -57,6 +58,7 @@ const app = {
       'overview': 'Sales Overview',
       'products': 'Product Analysis',
       'regions': 'Regional Performance',
+      'segmentation': 'Customer Segmentation',
       'data': 'Raw Data'
     };
     
@@ -110,6 +112,9 @@ const app = {
     
     // 3. Update Table
     this.renderTable(data);
+
+    // 4. Run Customer Segmentation
+    segmentation.processAndRun();
   },
   
   renderTable(data) {
