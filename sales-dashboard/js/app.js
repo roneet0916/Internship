@@ -47,6 +47,26 @@ const app = {
     // Export buttons
     document.getElementById('exportBtn').addEventListener('click', () => this.exportToCSV());
     document.getElementById('exportBtnTable').addEventListener('click', () => this.exportToCSV());
+
+    // Check if offline/network issues blocked CDNs
+    if (typeof Chart === 'undefined') {
+      setTimeout(() => {
+        this.showToast('Failed to load Chart.js. Some interactive visualizations may be unavailable offline.', 'error');
+      }, 1000);
+    }
+    if (typeof XLSX === 'undefined') {
+      setTimeout(() => {
+        this.showToast('Failed to load SheetJS. Importing Excel/CSV files may be unavailable offline.', 'error');
+      }, 1500);
+    }
+    if (typeof flatpickr === 'undefined') {
+      setTimeout(() => {
+        this.showToast('Failed to load Flatpickr. Custom date range selector is unavailable offline.', 'error');
+      }, 2000);
+    }
+
+    // Automatically load sample data on startup
+    dataLoader.generateSampleData();
   },
   
   bindNavigation() {
